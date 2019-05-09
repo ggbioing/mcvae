@@ -1,0 +1,22 @@
+name: py37
+channels:
+- pytorch
+- conda-forge # nibabel, nilearn
+- defaults
+dependencies:
+- python=3.7
+- numpy
+- matplotlib=2.*
+- scipy
+- pandas
+- ipython
+- jupyter
+- pytorch-cpu
+- torchvision-cpu
+- scikit-learn
+- nibabel
+- nilearn
+- xlrd  # allows pandas to read excel files
+- openpyxl  # allows pandas to write excel files
+- natsort
+prefix: /home/user/Software/Python3/miniconda3/envs/py37
