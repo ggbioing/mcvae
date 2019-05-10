@@ -94,12 +94,14 @@ def load_model(modeldir):
 	return torch.load(epoch_path, map_location=lambda storage, loc: storage)
 
 
-def save_model(model, filename):
+def save_model(model, filename=None):
 	"""
 	Adapted from:
 	https://discuss.pytorch.org/t/loading-a-saved-model-for-continue-training/17244/3
 	http://archive.is/2pnMw
 	"""
+	fn = model.model_name if filename is None else filename
+	fn += '.pt'
 	loss = model.loss['total']
 	if str(loss[-1]) == 'nan':
 		print("Loss is nan! Not saving.")
@@ -112,8 +114,8 @@ def save_model(model, filename):
 			'loss': model.loss,
 			'epochs': model.epochs
 		}
-		print(f"Saving on {filename}")
-		torch.save(state, filename)
+		print(f"Saving on {fn}")
+		torch.save(state, fn)
 
 
 def model2excel(model, data=None, filename=None):
@@ -145,9 +147,8 @@ def ltonumpy(X):
 
 def ltotensor(X):
 	"""
-
 	:param X: list of numpy array or pytorch variables
-	:return:
+	:return: list of torch FloatTensors
 	"""
 	assert isinstance(X, list)
 	assert len(X) > 0
