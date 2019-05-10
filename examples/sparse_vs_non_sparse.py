@@ -127,4 +127,5 @@ plt.bar(range(len(do)), do)
 plt.suptitle(f'Dropout probability of {fit_lat_dims} fitted latent dimensions in Sparse Model')
 plt.title(f'({true_lat_dims} true latent dimensions)')
 
+plt.show()
 print("See you!")

@@ -1,10 +1,8 @@
-import os
-import shutil
-import copy
 import numpy as np
 import torch
 import torch.utils.data
 
+# TODO: write a better initialization for DEVICE, considering the available resources.
 DEVICE_ID = 0
 DEVICE = torch.device('cuda:' + str(DEVICE_ID) if torch.cuda.is_available() else 'cpu')
 if torch.cuda.is_available():
@@ -14,45 +12,6 @@ pi = torch.FloatTensor([np.pi]).to(DEVICE)  # torch.Size([1])
 log_2pi = torch.log(2 * pi)
 
 BCELoss = torch.nn.BCELoss(reduction='none')
-
-
-def ids_to_selection(ids):
-	"""
-	Return a list of list with none in i=o positions and common ids otherwise
-	:param id: list of ids: [list1, list2, listN]
-	:return: [[None, dict, dict], [dict, None, dict], [dict, dict, None]]
-	"""
-	for i in ids:
-		assert sorted(i) == i
-	sel = []
-	for i in range(len(ids)):  # input channel
-		sel.append([])
-		for o in range(len(ids)):  # output channel
-			if i == o:
-				sel[i].append(None)
-			else:
-				sel[i].append({})
-				common_ids = np.sort(tuple(set(ids[i]) & set(ids[o])))
-				pred = copy.deepcopy([ids[o].index(element) for element in common_ids])
-				sel[i][o]['right'] = pred
-				target = copy.deepcopy([ids[i].index(element) for element in common_ids])
-				sel[i][o]['left'] = target
-				del common_ids, pred, target
-	return sel
-
-
-def merge_ids(ids):
-	"""
-	:param ids: len(ids) = N channels
-	:return: indeces to compute appropriately KL and Log-Likelihood
-	"""
-	for l in ids:
-		assert sorted(l) == l
-	sorted_ids = sorted(set([i for l in ids for i in l]))
-	index_list = []
-	for l in ids:
-		index_list.append([sorted_ids.index(i) for i in l])
-	return {'uniq': sorted_ids, 'z_index': index_list, 'LL_index': ids_to_selection(ids)}
 
 
 def reconstruction_error(predicted, target):
@@ -77,7 +36,7 @@ def LL(predicted, target, logvar, index_dict=None):
 
 	Remember: the maximum likelihood approach systematically underestimates the variance of the distribution.
 
-	See Bishop pag.27
+	See Bishop PRML pag.27
 
 	:param predicted: double tensor (Nob_s x N_features)
 	:param target: double tensor (same size as 'predicted')
@@ -90,27 +49,6 @@ def LL(predicted, target, logvar, index_dict=None):
 		ll = -0.5 * ((predicted[index_dict['left'], :] - target[index_dict['right'], :]) ** 2 / logvar.exp() + logvar + log_2pi)
 	# sum over data dimensions (n_feats); average over observations (N_obs)
 	return ll.sum(1).mean(0)  # mean ll per observation
-
-
-def bernoulli_ll(x, p, index_dict=None):
-	"""
-	Remember p in (0, 1)
-	Bernoulli log-likelihood = - binary cross entropy
-	:param x: observed data
-	:param p: Bernoulli parameter
-	:return: loglikelihood
-	"""
-	# bce = torch.nn.BCELoss(reduction='none')
-	# ll = x * torch.log(p).clamp(-8) + (1-x) * torch.log(1-p).clamp(-8)
-	# sum over data dimensions (n_feats); average over observations (N_obs)
-	# return ll.sum(1).mean(0)
-	if index_dict is None:
-		P = p  # input
-		X = x  # target
-	else:
-		P = p[index_dict['left'], :]
-		X = x[index_dict['right'], :]
-	return -BCELoss(P, X).sum(1).mean(0)
 
 
 def KL(mu, logvar):
@@ -183,8 +121,7 @@ def loss_has_converged(x, N=500, stop_slope=-0.01):
 
 
 def loss_has_diverged(x):
-	# return x[-1] > x[0]
-	return False
+	return x[-1] > x[0]
 
 
 def loss_is_nan(x):
