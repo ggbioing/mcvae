@@ -24,7 +24,12 @@ The Software is provided only as a source file.
 
 In case of using the Software for a publication or other results obtained through the use of the Software, user should cite the Software as follows:
 
--- citation here --
+@inproceedings{Antelmi2019,
+    author = {Antelmi, Luigi and Ayache, Nicholas and Robert, Philippe and Lorenzi, Marco},
+    booktitle = {Proceedings of ICML 2019, the 36th International Conference on Machine Learning},
+    title = {{Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data}},
+    year = {2019}
+}
 
 Every user of the Software could communicate to the developers at the following addresses [luigi.antelmi@inria.fr, marco.lorenzi@inria.fr] his or her remarks as to the use of the Software.
 
