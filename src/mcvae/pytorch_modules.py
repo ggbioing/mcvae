@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.utils.data
+from torch.distributions import Normal, kl_divergence
 
 # TODO: write a better initialization for DEVICE, considering the available resources.
 DEVICE_ID = 0
@@ -65,7 +66,7 @@ def KL(mu, logvar):
 	https://arxiv.org/abs/1312.6114
 	'''
 	kl = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())
-	return kl.sum(1).mean(0)  # torch.Size([1])
+	return kl
 
 
 def compute_log_alpha(mu, logvar):
@@ -84,17 +85,19 @@ def compute_clip_mask(mu, logvar, thresh=3):
 	return (log_alpha < thresh).float()
 
 
-def KL_log_uniform(mu, logvar):
+def KL_log_uniform(p, *args, **kwargs):
 	"""
-	Paragraph 4.2 from:
+	Arguments other than 'p' are ignored.
+
+	Formula from Paragraph 4.2 in:
 	Variational Dropout Sparsifies Deep Neural Networks
 	Molchanov, Dmitry; Ashukha, Arsenii; Vetrov, Dmitry
 	https://arxiv.org/abs/1701.05369
 	"""
-	log_alpha = compute_log_alpha(mu, logvar)
+	log_alpha = compute_log_alpha(p.loc, p.scale.pow(2).log())
 	k1, k2, k3 = 0.63576, 1.8732, 1.48695
 	neg_KL = k1 * torch.sigmoid(k2 + k3 * log_alpha) - 0.5 * torch.log1p(torch.exp(-log_alpha)) - k1
-	return -neg_KL.sum(1).mean(0)
+	return -neg_KL
 
 
 def loss_has_converged(x, N=500, stop_slope=-0.01):
@@ -202,44 +205,70 @@ class MultiChannelBase(torch.nn.Module):
 		self.W_out_logvar = torch.nn.ParameterList(W_out_logvar)
 
 	def init_KL(self):
-		self.KL_fn = KL
+		self.KL_fn = kl_divergence
 
 	def encode(self, x):
 
+		# qzx = []
+		# for ch in range(self.n_channels):
+		# 	qzx.append({})
+		# 	qzx[ch]['mu'] = self.W_mu[ch](x[ch])
+		# 	qzx[ch]['logvar'] = self.W_logvar[ch](x[ch])
+		# return qzx
+
 		qzx = []
-		for ch in range(self.n_channels):
-			qzx.append({})
-			qzx[ch]['mu'] = self.W_mu[ch](x[ch])
-			qzx[ch]['logvar'] = self.W_logvar[ch](x[ch])
+		for i, xi in enumerate(x):
+			q = Normal(
+				loc=self.W_mu[i](xi),
+				scale=self.W_logvar[i](xi).exp().pow(0.5)
+			)
+			qzx.append(q)
+			del q
+
 		return qzx
 
 	def sample_from(self, qzx):
+
 		'''
 		sampling by leveraging on the reparametrization trick
 		'''
+
 		zx = []
-		eps = torch.randn(qzx[0]['mu'].size(), device=DEVICE)
 
 		for ch in range(self.n_channels):
-			mu_x = qzx[ch]['mu']
 			if self.training:
-				std_x = torch.exp(torch.mul(qzx[ch]['logvar'], 0.5))
-				zx.append(mu_x + torch.mul(std_x, eps))
+				zx.append(
+					qzx[ch].rsample()
+				)
 			else:
-				zx.append(mu_x)
+				zx.append(
+					qzx[ch].loc
+				)
+
 		return zx
 
 	def decode(self, zx):
 
+		# pxz = []
+		# for i in range(self.n_channels):
+		# 	pxz.append([])
+		# 	for j in range(self.n_channels):
+		# 		pxz[i].append({})
+		# 		# i = latent comp; j = decoder
+		# 		pxz[i][j]['mu'] = self.W_out[j](zx[i])
+		# 		# Noise is modeled as independent from the latent space variables
+		# 		pxz[i][j]['logvar'] = self.W_out_logvar[j]
+		# return pxz
 		pxz = []
 		for i in range(self.n_channels):
 			pxz.append([])
 			for j in range(self.n_channels):
-				pxz[i].append({})
-				# i = latent comp; j = decoder
-				pxz[i][j]['mu'] = self.W_out[j](zx[i])
-				# Noise is modeled as independent from the latent space variables
-				pxz[i][j]['logvar'] = self.W_out_logvar[j]
+				p_out = Normal(
+					loc=self.W_out[j](zx[i]),
+					scale=self.W_out_logvar[j].exp().pow(0.5)
+				)
+				pxz[i].append(p_out)
+				del p_out
 		return pxz
 
 	def forward(self, x):
@@ -254,15 +283,14 @@ class MultiChannelBase(torch.nn.Module):
 			'pxz': pxz
 		}
 
-	def reconstruct(self, fwd_return):
-		x = fwd_return['x']
-		qzx = fwd_return['qzx']
+	def reconstruct(self, x):
+		fwd_return = self.forward(x)
 		pxz = fwd_return['pxz']
 
 		Xhat = []
 		for c in range(self.n_channels):
 			# mean along the stacking direction
-			xhat = torch.stack([pxz[e][c]['mu'].detach() for e in range(self.n_channels)]).mean(0)
+			xhat = torch.stack([pxz[e][c].loc.detach() for e in range(self.n_channels)]).mean(0)
 			Xhat.append(xhat)
 			del xhat
 
@@ -321,12 +349,12 @@ class MultiChannelBase(torch.nn.Module):
 		for i in range(self.n_channels):
 
 			# KL Divergence
-			kl += self.KL_fn(qzx[i]['mu'], qzx[i]['logvar'])
+			kl += self.KL_fn(qzx[i], Normal(0, 1)).sum(1).mean(0)  # torch.Size([1])
 
 			for j in range(self.n_channels):
 				# i = latent comp; j = decoder
 				# Direct (i=j) and Crossed (i!=j) Log-Likelihood
-				ll += LL(target=x[j], predicted=pxz[i][j]['mu'], logvar=pxz[i][j]['logvar'])
+				ll += pxz[i][j].log_prob(x[j]).sum(1).mean(0)
 
 		total = kl - ll
 
@@ -355,14 +383,14 @@ class MultiChannelBase(torch.nn.Module):
 		for i in range(self.n_channels):
 
 			# KL Divergence
-			kl += self.KL_fn(qzx[i]['mu'], qzx[i]['logvar'])
+			kl += self.KL_fn(qzx[i], Normal(0, 1))
 
 			for j in range(self.n_channels):
 				# i = latent comp; j = decoder
 				# Direct (i=j) and Crossed (i!=j) Log-Likelihood
-				ll += LL(target=x[j], predicted=pxz[i][j]['mu'], logvar=pxz[i][j]['logvar'])
-				rec_loss += reconstruction_error(target=x[j], predicted=pxz[i][j]['mu'])
-				mae_loss += mae(target=x[j], predicted=pxz[i][j]['mu'])
+				ll += pxz[i][j].log_prob(x[j]).sum(1).mean(0)
+				rec_loss += reconstruction_error(target=x[j], predicted=pxz[i][j].loc)
+				mae_loss += mae(target=x[j], predicted=pxz[i][j].loc)
 
 		total = kl - ll
 
@@ -421,11 +449,16 @@ class MultiChannelSparseVAE(MultiChannelBase):
 		z ~ N( z | mu, alpha * mu^2 )
 		"""
 		qzx = []
-		for ch in range(self.n_channels):
-			qzx.append({})
-			mu = self.W_mu[ch](x[ch])
-			qzx[ch]['mu'] = mu
-			qzx[ch]['logvar'] = compute_logvar(mu, self.log_alpha)
+		for i, xi in enumerate(x):
+			mu = self.W_mu[i](xi)
+			logvar = compute_logvar(mu, self.log_alpha)
+			q = Normal(
+				loc=mu,
+				scale=logvar.exp().pow(0.5)
+			)
+			qzx.append(q)
+			del mu, logvar, q
+
 		return qzx
 
 	def dropout_fn(self, lv, threshold=0.2):
@@ -460,7 +493,7 @@ class MultiChannelSparseVAE(MultiChannelBase):
 		qzx = self.encode(x)
 		logvar = []
 		for ch in range(self.n_channels):
-			mu = qzx[ch]['mu']
+			mu = qzx[ch].loc
 			lv = compute_logvar(mu, self.log_alpha)
 			logvar.append(lv.detach())
 		return logvar

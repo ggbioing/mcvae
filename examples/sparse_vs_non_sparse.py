@@ -1,16 +1,14 @@
 #!/usr/bin/env python
+import sys
 import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-import mcvae.pytorch_modules
-import mcvae.utilities
-import mcvae.preprocessing
-import mcvae.plot
-import mcvae.diagnostics
+sys.path.append(os.getcwd() + '/../src')
+from mcvae import pytorch_modules, utilities, preprocessing, plot, diagnostics
 
 
-DEVICE = mcvae.pytorch_modules.DEVICE
+DEVICE = pytorch_modules.DEVICE
 print(f"Running on {DEVICE}")
 
 Nobs = 500
@@ -24,7 +22,7 @@ np.random.seed(7)
 z = np.random.randn(Nobs, true_lat_dims)
 z_test = np.random.randn(Nobs, true_lat_dims)
 
-generator = mcvae.pytorch_modules.ScenarioGenerator(
+generator = pytorch_modules.ScenarioGenerator(
     lat_dim=true_lat_dims,
     n_channels=n_channels,
     n_feats=n_feats,
@@ -33,7 +31,7 @@ generator = mcvae.pytorch_modules.ScenarioGenerator(
 preprocpars = {'remove_mean': True, 'normalize': True, 'whitening': False}
 
 x_ = generator(z)
-x, x_noisy = mcvae.utilities.preprocess_and_add_noise(x_, snr=snr)
+x, x_noisy = utilities.preprocess_and_add_noise(x_, snr=snr)
 #x = mcvae.utilities.ltotensor(
 #    mcvae.preprocessing.preprocess(x_, **preprocpars)
 #)
@@ -62,19 +60,19 @@ model = {}
 
 # Multi-Channel VAE
 torch.manual_seed(24)
-model['mcvae'] = mcvae.pytorch_modules.MultiChannelBase(
+model['mcvae'] = pytorch_modules.MultiChannelBase(
     **init_dict,
     model_name_dict={**init_dict, 'adam_lr': adam_lr, 'snr': snr},
 )
 
 # Sparse Multi-Channel VAE
 torch.manual_seed(24)
-model['smcvae'] = mcvae.pytorch_modules.MultiChannelSparseVAE(
+model['smcvae'] = pytorch_modules.MultiChannelSparseVAE(
     **init_dict,
     model_name_dict={**init_dict, 'adam_lr': adam_lr, 'snr': snr},
 )
 
-for current_model in ['mcvae', 'smcvae']:
+for current_model in model.keys():
 
     model[current_model].to(DEVICE)
 
@@ -97,8 +95,7 @@ for current_model in ['mcvae', 'smcvae']:
         for pg in model[current_model].optimizer.param_groups:
             pg['lr'] *= 0.1
         model[current_model].optimize(epochs=n_epochs, data=X)
-        mcvae.utilities.save_model(model[current_model])
-
+        utilities.save_model(model[current_model])
 
 # Output of the models
 pred = {}  # Prediction
@@ -107,16 +104,16 @@ g = {}     # Generative Parameters
 x_hat = {}  # reconstructed channels
 
 for m in model.keys():
-    mcvae.diagnostics.plot_loss(model[m])
+    diagnostics.plot_loss(model[m])
     pred[m] = model[m](X)
-    x_hat[m] = model[m].reconstruct(pred[m])
-    z[m] = np.array([pred[m]['qzx'][i]['mu'].detach().numpy() for i in range(n_channels)]).reshape(-1)
+    x_hat[m] = model[m].reconstruct(X)
+    z[m] = np.array([pred[m]['qzx'][i].loc.detach().numpy() for i in range(n_channels)]).reshape(-1)
     g[m] = np.array([model[m].W_out[i].weight.detach().numpy() for i in range(n_channels)]).reshape(-1)
 
-mcvae.plot.lsplom(mcvae.utilities.ltonumpy(x), title=f'Ground truth')
-mcvae.plot.lsplom(mcvae.utilities.ltonumpy(x_noisy), title=f'Noisy data fitted by the models (snr={snr})')
+plot.lsplom(utilities.ltonumpy(x), title=f'Ground truth')
+plot.lsplom(utilities.ltonumpy(x_noisy), title=f'Noisy data fitted by the models (snr={snr})')
 for m in model.keys():
-    mcvae.plot.lsplom(mcvae.utilities.ltonumpy(x_hat[m]), title=f'Reconstructed with {m} model')
+    plot.lsplom(utilities.ltonumpy(x_hat[m]), title=f'Reconstructed with {m} model')
 
 plt.figure()
 plt.subplot(1,2,1)
