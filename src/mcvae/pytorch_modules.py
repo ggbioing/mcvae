@@ -209,13 +209,6 @@ class MultiChannelBase(torch.nn.Module):
 
 	def encode(self, x):
 
-		# qzx = []
-		# for ch in range(self.n_channels):
-		# 	qzx.append({})
-		# 	qzx[ch]['mu'] = self.W_mu[ch](x[ch])
-		# 	qzx[ch]['logvar'] = self.W_logvar[ch](x[ch])
-		# return qzx
-
 		qzx = []
 		for i, xi in enumerate(x):
 			q = Normal(
@@ -249,16 +242,6 @@ class MultiChannelBase(torch.nn.Module):
 
 	def decode(self, zx):
 
-		# pxz = []
-		# for i in range(self.n_channels):
-		# 	pxz.append([])
-		# 	for j in range(self.n_channels):
-		# 		pxz[i].append({})
-		# 		# i = latent comp; j = decoder
-		# 		pxz[i][j]['mu'] = self.W_out[j](zx[i])
-		# 		# Noise is modeled as independent from the latent space variables
-		# 		pxz[i][j]['logvar'] = self.W_out_logvar[j]
-		# return pxz
 		pxz = []
 		for i in range(self.n_channels):
 			pxz.append([])
