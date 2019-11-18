@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 import nibabel as nib
+from sklearn.preprocessing import StandardScaler
 
 DEVICEID = 0
 DEVICE = torch.device('cuda:'+str(DEVICEID) if torch.cuda.is_available() else 'cpu')
@@ -133,9 +134,9 @@ def model2excel(model, data=None, filename=None):
 
 def ltonumpy(X):
 	"""
-
-	:param X: list of pytorch variables or tensors
-	:return:
+	ltonumpy: short for "list_to_numpy"
+	:param X: list of pytorch tensors
+	:return: list of numpy arrays
 	"""
 	assert isinstance(X, list)
 	assert len(X) > 0
@@ -145,15 +146,23 @@ def ltonumpy(X):
 		return [x.numpy() for x in X]
 
 
-def ltotensor(X):
+def ltotensor(X, device=DEVICE):
 	"""
+
 	:param X: list of numpy array or pytorch variables
-	:return: list of torch FloatTensors
+	:return:
 	"""
 	assert isinstance(X, list)
 	assert len(X) > 0
-	if isinstance(X[0], np.ndarray):
-		return [torch.FloatTensor(x) for x in X]
+	ret = []
+	for x in X:
+		if isinstance(x, np.ndarray):
+			ret.append(torch.FloatTensor(x).to(device))
+		elif x is None:
+			ret.append(None)
+		else:
+			raise ValueError('Cannot transform elemnt list to tensor')
+	return ret
 
 
 def modulate_aal(coefs, rois, modality='test', comp='', saveimg=False):
@@ -169,7 +178,7 @@ def modulate_aal(coefs, rois, modality='test', comp='', saveimg=False):
 	return nib.Nifti1Image(img, aal.affine, aal.header)
 
 
-def preprocess_and_add_noise(X, snr, seed=0):
+def preprocess_and_add_noise(X, snr, seed=0, device=DEVICE):
 	"""
 
 	:param X: list of pytorch variables
@@ -177,15 +186,26 @@ def preprocess_and_add_noise(X, snr, seed=0):
 	:param seed:
 	:return:
 	"""
+	if not isinstance(snr, list):
+		SNR = [snr for _ in X]
+	else:
+		SNR = snr
+
 	X_ = ltonumpy(X)
-	X_std_ = [(x - x.mean(0)) / x.std(0, ddof=1) for x in X_]
+	FIT = [StandardScaler().fit(x) for x in X_]
+	X_std_ = [FIT[i].transform(X_[i]) for i in range(len(X_))]
 	X_std = ltotensor(X_std_)
-	sigma_noise = np.sqrt(1 / snr)
+
 	# seed for reproducibility in training/testing based on prime number basis
-	seed = seed + 3*int(snr+1) + 5*len(X_) + 7*X_[0].shape[0] + 11*X_[0].shape[1]
+	seed = seed + 3 * int(SNR[0] + 1) + 5 * len(X_) + 7 * X_[0].shape[0] + 11 * X_[0].shape[1]
 	np.random.seed(seed)
-	X_std_noisy_ = [x + sigma_noise * np.random.randn(*x.shape) for x in X_std_]
-	X_std_noisy = ltotensor(X_std_noisy_)
+
+	X_std_noisy_ = []
+	for c, x in enumerate(X_std_):
+		sigma_noise = np.sqrt(1.0/SNR[c])
+		X_std_noisy_.append(x + sigma_noise * np.random.randn(*x.shape))
+
+	X_std_noisy = ltotensor(X_std_noisy_, device=device)
 	return X_std, X_std_noisy
 
 

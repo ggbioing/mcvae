@@ -20,7 +20,6 @@ snr=10
 
 np.random.seed(7)
 z = np.random.randn(Nobs, true_lat_dims)
-z_test = np.random.randn(Nobs, true_lat_dims)
 
 generator = pytorch_modules.ScenarioGenerator(
     lat_dim=true_lat_dims,
@@ -28,21 +27,11 @@ generator = pytorch_modules.ScenarioGenerator(
     n_feats=n_feats,
 )
 
-preprocpars = {'remove_mean': True, 'normalize': True, 'whitening': False}
-
 x_ = generator(z)
 x, x_noisy = utilities.preprocess_and_add_noise(x_, snr=snr)
-#x = mcvae.utilities.ltotensor(
-#    mcvae.preprocessing.preprocess(x_, **preprocpars)
-#)
+
 # Send to GPU (if possible)
 X = [c.to(DEVICE) for c in x] if torch.cuda.is_available() else x
-
-# x_test_ = generator(z_test)
-# x_test = mcvae.utilities.ltotensor(
-#     mcvae.preprocessing.preprocess(x_test_, **preprocpars)
-# )
-# X_test = [c.to(DEVICE) for c in x_test] if torch.cuda.is_available() else x_test
 
 ###################
 ## Model Fitting ##
