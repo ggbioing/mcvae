@@ -4,7 +4,6 @@ import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-sys.path.append(os.getcwd() + '/../src')
 from mcvae import pytorch_modules, utilities, preprocessing, plot, diagnostics
 
 

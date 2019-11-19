@@ -23,7 +23,7 @@ year = {2019}
 
 # Installation
 
-## Linux
+## GNU/Linux
 Install conda:
 ```bash
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  
@@ -32,9 +32,42 @@ bash Miniconda3-latest-Linux-x86_64.sh
 
 Download this github repository and move into in:
 ```bash
-git clone https://gitlab.inria.fr/epione_ML/mcvae
+git clone git://gitlab.inria.fr/epione_ML/mcvae
 cd mcvae
 ```
+
+Install the customized python environment:
+```bash
+conda env create -f environment.yml
+```
+
+Activate the python environment:
+```bash
+conda activate py37
+```
+
+Install the mcvae package:
+```bash
+python setup.py install
+```
+
+An alternative to the last point is to install the package in "develop" mode.
+Using this mode, all local modifications of source code will be considered in your Python interpreter (when restarted) without having to install the package again.
+This is particularly useful when adding new features.
+To install this package in develop mode, type the following command line:
+```bash
+python setup.py develop
+```
+
+## Windows
+Download and install conda from: https://docs.conda.io/en/latest/miniconda.html
+
+Download this github repository from: https://gitlab.inria.fr/epione_ML/mcvae
+
+Open the Anaconda prompt and move into the github repository previously downloaded.
+
+Deactivate the base environment:
+`conda deactivate`
 
 Install the customized python environment:
 `conda env create -f environment.yml`
@@ -44,3 +77,9 @@ Activate the python environment:
 
 Install the mcvae package:
 `python setup.py install`
+
+An alternative to the last point is to install the package in "develop" mode.
+Using this mode, all local modifications of source code will be considered in your Python interpreter (when restarted) without having to install the package again.
+This is particularly useful when adding new features.
+To install this package in develop mode, type the following command line:
+`python setup.py develop`
