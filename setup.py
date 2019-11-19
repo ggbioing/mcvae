@@ -1,5 +1,7 @@
+import os
 from setuptools import setup, find_packages
 
+src_dir = os.path.join(os.getcwd(), 'src')
 packages = {"" : "src"}
 for package in find_packages("src"):
     packages[package] = "src"
