@@ -413,6 +413,14 @@ class MultiChannelBase(torch.nn.Module):
 
 class MultiChannelSparseVAE(MultiChannelBase):
 
+	def __init__(
+			self,
+			dropout_threshold=0.2,
+			*args, **kwargs,
+	):
+		super().__init__(*args, **kwargs)
+		self.dropout_threshold = dropout_threshold
+
 	def init_encoder(self):
 		# Encoders: random initialization of weights
 		W_mu = []
@@ -444,12 +452,12 @@ class MultiChannelSparseVAE(MultiChannelBase):
 
 		return qzx
 
-	def dropout_fn(self, lv, threshold=0.2):
+	def dropout_fn(self, lv):
 		alpha = torch.exp(self.log_alpha.detach())
 		do = alpha / (alpha + 1)
 		lv_out = []
 		for ch in range(self.n_channels):
-			lv_out.append(lv[ch] * (do < threshold).float())
+			lv_out.append(lv[ch] * (do < self.dropout_threshold).float())
 		return lv_out
 
 	def forward(self, x):
@@ -471,6 +479,12 @@ class MultiChannelSparseVAE(MultiChannelBase):
 	def dropout(self):
 		alpha = torch.exp(self.log_alpha.detach())
 		return alpha / (alpha + 1)
+
+	@property
+	def kept_components(self):
+		keep = (self.dropout.reshape(-1) < self.dropout_threshold).tolist()
+		components = [i for i, kept in enumerate(keep) if kept]
+		return components
 
 	def logvar(self, x):
 		qzx = self.encode(x)
