@@ -90,6 +90,14 @@ def plot_latent_space(model, data=None, classificator=None, text=None, all_plots
 		data = model.data
 	channels = len(data)
 	comps = model.lat_dim
+	if comp is None:
+		try:
+			comp = model.kept_components
+			print(f'Dropout threshold: {model.dropout_threshold}')
+			print(f'Components kept: {comp}')
+		except AttributeError:
+			pass
+
 	output = model(data)
 	#zx = [output['qzx'][c]['mu'] for c in range(channels)]
 	zx = output['zx']
@@ -120,12 +128,10 @@ def plot_latent_space(model, data=None, classificator=None, text=None, all_plots
 				)
 				ax.axis('off')
 			elif i > j:
-				#xi = zx[i].data.numpy()[:, comp]
-				#xj = zx[j].data.numpy()[:, comp]
-				xi = qzx[i]['mu'].data.numpy()[:, comp]
-				xj = qzx[j]['mu'].data.numpy()[:, comp]
-				si = np.exp(0.5*qzx[i]['logvar'].data.numpy()[:, comp])
-				sj = np.exp(0.5 * qzx[j]['logvar'].data.numpy()[:, comp])
+				xi = qzx[i].loc.detach().numpy()[:, comp]
+				xj = qzx[j].loc.detach().numpy()[:, comp]
+				si = qzx[i].scale.detach().numpy()[:, comp]
+				sj = qzx[j].scale.detach().numpy()[:, comp]
 				ells = [Ellipse(xy=[xi[p], xj[p]], width=2 * si[p], height=2 * sj[p]) for p in range(len(xi))]
 				if classificator is not None:
 					for g in groups:
@@ -162,6 +168,7 @@ def plot_latent_space(model, data=None, classificator=None, text=None, all_plots
 				axs[-1, 0].set_title('Groups')
 
 	if all_plots:  # comps > 1:
+		# TODO: remove based on components
 		# One figure per channel
 		#  Uncorrelated relationsips expected between latent components
 		for ch in range(channels):
@@ -176,8 +183,8 @@ def plot_latent_space(model, data=None, classificator=None, text=None, all_plots
 					)
 					axs[j, i].axis('off')
 				elif i > j:
-					xi = qzx[ch]['mu'].data.numpy()[:, i]
-					xj = qzx[ch]['mu'].data.numpy()[:, j]
+					xi = qzx[ch].loc.detach().numpy()[:, i]
+					xj = qzx[ch].loc.detach().numpy()[:, j]
 					if classificator is not None:
 						for g in groups:
 							g_idx = classificator == g
@@ -266,12 +273,24 @@ def plot_loss_decimate(model, save_fig=False):
 		plt.savefig('loss_{}_epochs'.format(true_epochs))
 
 
-def plot_weights(model, side='decoder', title = '', xlabel='', comp=None, save_fig=False, rotation=15):
-	fig, axs = plt.subplots(model.n_channels, 1)
+def plot_weights(model, side='decoder', title='', xlabel='', comp=None, save_fig=False, rotation=15):
+
+	if comp is None:
+		try:
+			comp = model.kept_components
+			print(f'Dropout threshold: {model.dropout_threshold}')
+			print(f'Components kept: {comp}')
+		except AttributeError:
+			pass
+
 	if comp is None:
 		suptitle = 'Model Weights\n({})'.format(side)
 	else:
 		suptitle = 'Model Weights\n({}, comp. {})'.format(side, comp)
+		comp = comp if isinstance(comp, list) else [comp]
+
+	fig, axs = plt.subplots(model.n_channels, 1)
+
 	plt.suptitle(title + suptitle)
 	for ch in range(model.n_channels):
 		ax = axs if model.n_channels == 1 else axs[ch]  # 'AxesSubplot' object does not support indexing
@@ -292,13 +311,15 @@ def plot_weights(model, side='decoder', title = '', xlabel='', comp=None, save_f
 			if comp is not None:
 				y = y[:, comp]
 			# axs[ch].plot(y)
-			if model.lat_dim == 1 or comp is not None:
+			if model.lat_dim == 1 or len(comp) == 1:
 				ax.bar(x, y.reshape(-1), width=0.25)
 			else:
 				ax.plot(x, y)
 			ax.set_ylabel(model.ch_name[ch], rotation=45, fontsize=14)
 			if comp is None:
 				ax.legend(['comp. '+str(c) for c in range(model.lat_dim)])
+			else:
+				ax.legend(['comp. ' + str(c) for c in comp])
 			ax.axhline(y=0, ls="--", c=".3")
 			if model.varname is not None:
 				tick_marks = np.arange(len(model.varname[ch]))
