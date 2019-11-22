@@ -285,6 +285,7 @@ def plot_weights(model, side='decoder', title='', xlabel='', comp=None, save_fig
 
 	if comp is None:
 		suptitle = 'Model Weights\n({})'.format(side)
+		comp = list(range(model.lat_dim))
 	else:
 		suptitle = 'Model Weights\n({}, comp. {})'.format(side, comp)
 		comp = comp if isinstance(comp, list) else [comp]
