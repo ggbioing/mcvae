@@ -266,14 +266,15 @@ class MultiChannelBase(torch.nn.Module):
 			'pxz': pxz
 		}
 
-	def reconstruct(self, x):
+	def reconstruct(self, x, reconstruct_from=None):
+		available_channels = range(self.n_channels) if reconstruct_from is None else reconstruct_from
 		fwd_return = self.forward(x)
 		pxz = fwd_return['pxz']
 
 		Xhat = []
 		for c in range(self.n_channels):
 			# mean along the stacking direction
-			xhat = torch.stack([pxz[e][c].loc.detach() for e in range(self.n_channels)]).mean(0)
+			xhat = torch.stack([pxz[e][c].loc.detach() for e in available_channels]).mean(0)
 			Xhat.append(xhat)
 			del xhat
 
