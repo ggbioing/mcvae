@@ -71,11 +71,11 @@ def KL(mu, logvar):
 
 def compute_log_alpha(mu, logvar):
 	# clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
-	return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
+	return (logvar - torch.log(mu.pow(2) + 1e-8)).clamp(min=-8, max=8)
 
 
 def compute_logvar(mu, log_alpha):
-	return log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)
+	return log_alpha + torch.log(mu.pow(2) + 1e-8)
 
 
 def compute_clip_mask(mu, logvar, thresh=3):
