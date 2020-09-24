@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import nibabel as nib
-from nilearn import plotting
 from matplotlib.ticker import NullFormatter
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits import mplot3d
@@ -31,6 +30,7 @@ class MidpointNormalize(matplotlib.colors.Normalize):
 
 
 def plot_img(img, data=None, anat=False):
+	from nilearn import plotting
 	"""
 	Plot slices at cut_coords = (0,0,0)
 	"""
