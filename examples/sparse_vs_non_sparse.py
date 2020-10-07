@@ -20,7 +20,7 @@ n_channels = 3
 n_feats = 4
 true_lat_dims = 2
 fit_lat_dims = 5
-snr=10
+snr = 5
 
 ds = SyntheticDataset(
     n=Nobs,
@@ -58,7 +58,7 @@ for model_name, model in models.items():
 
     ptfile = Path(model_name + '.pt')
 
-    load_or_fit(model, model.data, epochs, ptfile)
+    load_or_fit(model, model.data, epochs, ptfile, force_fit=True)
 
 # Output of the models
 pred = {}  # Prediction
@@ -68,16 +68,13 @@ x_hat = {}  # reconstructed channels
 
 for model_name, model in models.items():
     m = model_name
-    plot_loss(model)
-    pred[m] = model(X)
-    # rec_args = {} if model_name == 'mcvae' else {'dropout_threshold': 0.2}
+    # plot_loss(model)
+    q = model.encode(X)  # encoded distribution q(z|x)
+    z[m] = [q[i].mean.detach().numpy() for i in range(n_channels)]
+    z[m] = np.array(z[m]).reshape(-1)  # flatten
     x_hat[m] = model.reconstruct(X, dropout_threshold=0.2)
-    z[m] = [pred[m]['q'][i].loc.detach().numpy() for i in range(n_channels)]
-    try:
-        z[m] = np.array(model.dropout_threshold(z[m], threshold=0.2)).reshape(-1)
-    except NotImplementedError:
-        pass
-    g[m] = np.array([model.vae[i].W_out.weight.detach().numpy() for i in range(n_channels)]).reshape(-1)
+    g[m] = [model.vae[i].W_out.weight.detach().numpy() for i in range(n_channels)]
+    g[m] = np.array(g[m]).reshape(-1)  #flatten
 
 # plot.lsplom(utilities.ltonumpy(x), title=f'Ground truth')
 # plot.lsplom(utilities.ltonumpy(x_noisy), title=f'Noisy data fitted by the models (snr={snr})')
@@ -87,7 +84,7 @@ for model_name, model in models.items():
 plt.figure()
 plt.subplot(1,2,1)
 plt.hist([z['smcvae'], z['mcvae']], bins=50, color=['k', 'gray'])
-plt.legend(['Sparse', 'Non sparse'])
+plt.legend(['Sarse', 'Non sparse'])
 plt.title(r'Latent dimensions distribution')
 plt.ylabel('Count')
 plt.xlabel('Value')

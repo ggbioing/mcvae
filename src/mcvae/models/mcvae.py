@@ -1,6 +1,7 @@
 import copy
 from functools import reduce
 from operator import add
+from warnings import warn
 import torch
 from torch.utils.data._utils.collate import default_collate  # for imputation
 from .utils import Utilities
@@ -173,8 +174,8 @@ class Mcvae(torch.nn.Module, Utilities):
 				try:
 					z = self.dropout_threshold(z, dropout_threshold)
 				except NotImplementedError:
-					print('\tTrying to apply dropout to a non-sparse model.')
-					print('\tNothing to do.')
+					warn('\tTrying to apply dropout to a non-sparse model.'
+						 '\tIn this case we use all the latent dimensions.')
 
 			p = self.decode_in_reconstruction(z, *args, **kwargs)
 
