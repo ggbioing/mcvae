@@ -172,7 +172,7 @@ class Mcvae(torch.nn.Module, Utilities):
 
 			if dropout_threshold is not None:
 				try:
-					z = self.dropout_threshold(z, dropout_threshold)
+					z = self.apply_threshold(z, dropout_threshold)
 				except NotImplementedError:
 					warn('\tTrying to apply dropout to a non-sparse model.'
 						 '\tIn this case we use all the latent dimensions.')
@@ -207,7 +207,7 @@ class Mcvae(torch.nn.Module, Utilities):
 				qs = [self.vae[ch].encode(_) if _ is not None else None for ch, _ in enumerate(xs)]
 				zs_ = [_.loc if _ is not None else None for _ in qs]
 				if dropout_threshold is not None:
-					zs = [self.dropout_threshold(_, dropout_threshold) if _ is not None else None for _ in zs_]
+					zs = [self.apply_threshold(_, dropout_threshold) if _ is not None else None for _ in zs_]
 				else:
 					zs = zs_
 				xs_hat = []
@@ -264,7 +264,7 @@ class Mcvae(torch.nn.Module, Utilities):
 		else:
 			raise NotImplementedError
 
-	def dropout_threshold(self, z, threshold):
+	def apply_threshold(self, z, threshold):
 		# print(f'Applying dropout threshold of {threshold}')
 		assert threshold <= 1.0
 		keep = (self.dropout < threshold).squeeze()
