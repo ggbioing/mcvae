@@ -1,4 +1,4 @@
-name: py37
+name: mcvae
 channels:
 - pytorch
 - conda-forge # nibabel, nilearn
