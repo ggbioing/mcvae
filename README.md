@@ -43,7 +43,7 @@ conda env create -f environment.yml
 
 Activate the python environment:
 ```bash
-conda activate py37
+conda activate mcvae
 ```
 
 Install the mcvae package:
@@ -73,7 +73,7 @@ Install the customized python environment:
 `conda env create -f environment.yml`
 
 Activate the python environment:
-`conda activate py37`
+`conda activate mcvae`
 
 Install the mcvae package:
 `python setup.py install`
