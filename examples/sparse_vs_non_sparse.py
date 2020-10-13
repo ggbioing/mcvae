@@ -17,10 +17,10 @@ print(f"Running on {DEVICE}")
 
 Nobs = 500
 n_channels = 3
-n_feats = 4
-true_lat_dims = 2
-fit_lat_dims = 5
-snr = 5
+n_feats = 5
+true_lat_dims = 3
+fit_lat_dims = 10
+snr = 3
 
 ds = SyntheticDataset(
     n=Nobs,
@@ -38,13 +38,13 @@ X = [c.to(DEVICE) for c in x] if torch.cuda.is_available() else x
 ###################
 ## Model Fitting ##
 ###################
-adam_lr = 1e-2
-epochs = 20000
+adam_lr = 1e-3
+epochs = 10000
 
 models = {}
 
 # Multi-Channel VAE
-torch.manual_seed(24)
+torch.manual_seed(42)
 models['mcvae'] = Mcvae(data=X, lat_dim=fit_lat_dims)
 
 # Sparse Multi-Channel VAE
@@ -58,7 +58,7 @@ for model_name, model in models.items():
 
     ptfile = Path(model_name + '.pt')
 
-    load_or_fit(model, model.data, epochs, ptfile, force_fit=True)
+    load_or_fit(model, model.data, epochs, ptfile)
 
 # Output of the models
 pred = {}  # Prediction
@@ -68,11 +68,13 @@ x_hat = {}  # reconstructed channels
 
 for model_name, model in models.items():
     m = model_name
-    # plot_loss(model)
+    plot_loss(model)
     q = model.encode(X)  # encoded distribution q(z|x)
     z[m] = [q[i].mean.detach().numpy() for i in range(n_channels)]
+    if model.sparse:
+        z[m] = model.apply_threshold(z[m], 0.2)
     z[m] = np.array(z[m]).reshape(-1)  # flatten
-    x_hat[m] = model.reconstruct(X, dropout_threshold=0.2)
+    x_hat[m] = model.reconstruct(X, dropout_threshold=0.2)  # it will raise a warning in non-sparse mcvae
     g[m] = [model.vae[i].W_out.weight.detach().numpy() for i in range(n_channels)]
     g[m] = np.array(g[m]).reshape(-1)  #flatten
 
