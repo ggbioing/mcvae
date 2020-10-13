@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-import os
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from pathlib import Path
 from mcvae.datasets import SyntheticDataset
-from mcvae.utilities import preprocess_and_add_noise
+from mcvae.utilities import preprocess_and_add_noise, ltonumpy
 from mcvae.models import Mcvae
 from mcvae.models.utils import DEVICE, load_or_fit
 from mcvae.diagnostics import plot_loss
+from mcvae.plot import lsplom
 
 # from mcvae import pytorch_modules, utilities, preprocessing, plot, diagnostics
 
@@ -17,10 +17,10 @@ print(f"Running on {DEVICE}")
 
 Nobs = 500
 n_channels = 3
-n_feats = 5
-true_lat_dims = 3
-fit_lat_dims = 10
-snr = 3
+n_feats = 4
+true_lat_dims = 2
+fit_lat_dims = 5
+snr = 10
 
 ds = SyntheticDataset(
     n=Nobs,
@@ -38,8 +38,8 @@ X = [c.to(DEVICE) for c in x] if torch.cuda.is_available() else x
 ###################
 ## Model Fitting ##
 ###################
-adam_lr = 1e-3
-epochs = 10000
+adam_lr = 2e-3
+epochs = 20000
 
 models = {}
 
@@ -48,7 +48,7 @@ torch.manual_seed(42)
 models['mcvae'] = Mcvae(data=X, lat_dim=fit_lat_dims)
 
 # Sparse Multi-Channel VAE
-torch.manual_seed(24)
+torch.manual_seed(42)
 models['smcvae'] = Mcvae(data=X, lat_dim=fit_lat_dims, sparse=True)
 
 for model_name, model in models.items():
@@ -78,26 +78,31 @@ for model_name, model in models.items():
     g[m] = [model.vae[i].W_out.weight.detach().numpy() for i in range(n_channels)]
     g[m] = np.array(g[m]).reshape(-1)  #flatten
 
-# plot.lsplom(utilities.ltonumpy(x), title=f'Ground truth')
-# plot.lsplom(utilities.ltonumpy(x_noisy), title=f'Noisy data fitted by the models (snr={snr})')
-# for m in model.keys():
-#     plot.lsplom(utilities.ltonumpy(x_hat[m]), title=f'Reconstructed with {m} model')
 
+lsplom(ltonumpy(x), title=f'Ground truth')
+lsplom(ltonumpy(x_noisy), title=f'ENoisy data fitted by the models (snr={snr})')
+for m in models.keys():
+    lsplom(ltonumpy(x_hat[m]), title=f'Reconstructed with {m} model')
+
+"""
+With such a simple dataset, mcvae and sparse-mcvae gives the same results in terms of
+latent space and generative parameters.
+However, only with the sparse model is possible to easily identify the important latent dimensions.
+"""
 plt.figure()
 plt.subplot(1,2,1)
-plt.hist([z['smcvae'], z['mcvae']], bins=50, color=['k', 'gray'])
+plt.hist([z['smcvae'], z['mcvae']], bins=20, color=['k', 'gray'])
 plt.legend(['Sarse', 'Non sparse'])
 plt.title(r'Latent dimensions distribution')
 plt.ylabel('Count')
 plt.xlabel('Value')
 plt.subplot(1,2,2)
-plt.hist([g['smcvae'], g['mcvae']], bins=50, color=['k', 'gray'])
+plt.hist([g['smcvae'], g['mcvae']], bins=20, color=['k', 'gray'])
 plt.legend(['Sparse', 'Non sparse'])
 plt.title(r'Generative parameters $\mathbf{\theta} = \{\mathbf{\theta}_1 \ldots \mathbf{\theta}_C\}$')
 plt.xlabel('Value')
 
 
-# Show dropout effect
 do = np.sort(models['smcvae'].dropout.detach().numpy().reshape(-1))
 plt.figure()
 plt.bar(range(len(do)), do)
