@@ -11,8 +11,10 @@ dependencies:
 - pandas
 - ipython
 - jupyter
-- pytorch-cpu
-- torchvision-cpu
+- pytorch
+- torchvision
+- torchaudio
+- cpuonly
 - scikit-learn
 - nibabel
 - nilearn
