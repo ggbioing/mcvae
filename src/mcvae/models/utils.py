@@ -117,6 +117,8 @@ def save_model(model, modelpath, verbose=False, warn=False):
 
 def load_or_fit(model, data, epochs, ptfile, init_loss=True, minibatch=False, force_fit=False):
 
+	ptfile = Path(ptfile)
+
 	rf = Path(f'{ptfile}.running')
 
 	if ptfile.exists():
