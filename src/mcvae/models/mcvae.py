@@ -109,7 +109,7 @@ class Mcvae(torch.nn.Module, Utilities):
 			'p': p
 		}
 
-	def compute_kl(self, q, beta):
+	def compute_kl(self, q):
 		kl = 0
 		if not self.sparse:
 			for i, qi in enumerate(q):
@@ -120,7 +120,7 @@ class Mcvae(torch.nn.Module, Utilities):
 				if i in self.enc_channels:
 					kl += qi.kl_from_log_uniform().sum(1, keepdims=True).mean(0)
 
-		return beta * kl / self.n_enc_channels  # average KL per encoding
+		return kl
 
 	def compute_ll(self, p, x):
 		# p[x][z]: p(x|z)
@@ -131,14 +131,15 @@ class Mcvae(torch.nn.Module, Utilities):
 				if i in self.dec_channels and j in self.enc_channels:
 					ll += self.vae[i].compute_ll(p=p[i][j], x=x[i]).mean(0)  # average ll per observation
 
-		return ll / self.n_enc_channels / self.n_dec_channels  # average ll per reconstruction
+		return ll
 
 	def loss_function(self, fwd_ret):
 		x = fwd_ret['x']
 		q = fwd_ret['q']
 		p = fwd_ret['p']
 
-		kl = self.compute_kl(q, self.beta)
+		kl = self.compute_kl(q)
+		kl *= self.beta
 		ll = self.compute_ll(p=p, x=x)
 
 		total = kl - ll
