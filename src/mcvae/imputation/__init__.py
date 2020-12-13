@@ -71,6 +71,22 @@ def negate_ids(ids):
 	return nids
 
 
+def mark_missing_as_none(x, ids, default_value=np.nan):
+	assert isinstance(x, list)
+	feats = [_.shape[1] for _ in x]
+	union = sorted(set(reduce(add, ids)))
+	X = []
+	for ch in range(len(x)):
+		X.append([])
+		for s in union:
+			if s in ids[ch]:
+				iloc = ids[ch].index(s)
+				X[ch].append(x[ch][iloc].tolist())
+			else:
+				X[ch].append((default_value * np.ones(feats[ch])).tolist())
+	return [np.array(_) for _ in X]
+
+
 def mse_gt_vs_imputed(x_gt, x_im, ids):
 	"""
 	:param x_gt: ground truth
@@ -92,3 +108,12 @@ def mse_gt_vs_imputed(x_gt, x_im, ids):
 
 	mse /= n
 	return mse
+
+
+__all__ = [
+	'ids_to_selection',
+	'process_ids',
+	'negate_ids',
+	'mark_missing_as_none',
+	'mse_gt_vs_imputed',
+]

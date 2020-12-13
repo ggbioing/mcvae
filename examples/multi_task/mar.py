@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 from pathlib import Path
 import torch
 from mcvae.datasets import SyntheticDataset
@@ -49,7 +51,7 @@ parser.add_argument(
 parser.add_argument(
 	'--snr',
 	type=float,
-	default=100.0,
+	default=10.0,
 	metavar='<float>',
 	help='snr level'
 )
@@ -85,69 +87,68 @@ epochs = args.epochs
 fcd = args.fcd
 model_seed = args.model_seed
 
-###########################
-## PREPARE TRAINING DATA ##
-###########################
-ds_train = SyntheticDataset(n=n, lat_dim=lat_dim, n_feats=n_feats, n_channels=n_channels, train=True)
-x_gt, x_noisy = preprocess_and_add_noise(ds_train.x, snr=snr)
+stats = []
 
-x_m, ids = simulate_mar_multi_channel_data(x=x_noisy, intersection_fraction=fcd)
+for fcd in (0.0, 0.25, 0.5, 0.75, 1.0):
+	###########################
+	## PREPARE TRAINING DATA ##
+	###########################
+	ds_train = SyntheticDataset(n=n, lat_dim=lat_dim, n_feats=n_feats, n_channels=n_channels, train=True)
+	x_gt, x_noisy = preprocess_and_add_noise(ds_train.x, snr=snr)
 
-inters = np.zeros((len(ids), len(ids)))
-for i, idi in enumerate(ids):
-	for j, idj in enumerate(ids):
-		inters[i, j] = len(set(idi).intersection(set(idj)))
+	x_m, ids = simulate_mar_multi_channel_data(x=x_noisy, intersection_fraction=fcd)
 
-unions = np.zeros((len(ids), len(ids)))
-for i, idi in enumerate(ids):
-	for j, idj in enumerate(ids):
-		unions[i, j] = len(set(idi).union(set(idj)))
+	inters = np.zeros((len(ids), len(ids)))
+	for i, idi in enumerate(ids):
+		for j, idj in enumerate(ids):
+			inters[i, j] = len(set(idi).intersection(set(idj)))
 
-###################
-## MODEL FITTING ##
-###################
-torch.manual_seed(model_seed)
-model = MtMcvae(ids=[list(_) for _ in ids], lat_dim=lat_dim, data=x_m, sparse=False, noise_init_logvar=3)
-model.optimizer = torch.optim.Adam(params=model.parameters(), lr=1e-3)
-model.to(DEVICE)
+	unions = np.zeros((len(ids), len(ids)))
+	for i, idi in enumerate(ids):
+		for j, idj in enumerate(ids):
+			unions[i, j] = len(set(idi).union(set(idj)))
 
-ptfile = Path('mt-mcvae.pt')  # multi-task mcvae
+	###################
+	## MODEL FITTING ##
+	###################
 
-load_or_fit(model, model.data, epochs, ptfile, force_fit=False)
+	# MCVAE
+	torch.manual_seed(model_seed)
+	model = MtMcvae(ids=[list(_) for _ in ids], lat_dim=lat_dim, data=x_m, sparse=False, noise_init_logvar=3)
+	model.optimizer = torch.optim.Adam(params=model.parameters(), lr=1e-3)
+	model.to(DEVICE)
 
-#####################
-## TEST IMPUTATION ##
-#####################
-x_im_mcvae = model.impute(x_m, ids)
-mse_mcvae = mse_gt_vs_imputed(x_gt, x_im_mcvae, ids)
+	ptfile = Path(f'mt-mcvae_fcd-{fcd}.pt')
 
-#############
-## TESTING ##
-#############
-n_test = 1000
-ds_test = SyntheticDataset(n=n_test, lat_dim=lat_dim, n_feats=n_feats, n_channels=n_channels, train=False)
-x_gt_test, x_noisy_test = preprocess_and_add_noise(ds_test.x, snr=snr)
-x_rec_test = model.reconstruct(x_noisy_test)
+	load_or_fit(model, model.data, epochs, ptfile, force_fit=False)
 
-test_press = sum(model_press(model, x_noisy_test, x_gt_test))
+	#############
+	## TESTING ##
+	#############
+	n_test = 1000
+	ds_test = SyntheticDataset(n=n_test, lat_dim=lat_dim, n_feats=n_feats, n_channels=n_channels, train=False)
+	x_gt_test, x_noisy_test = preprocess_and_add_noise(ds_test.x, snr=snr)
+	x_rec_test = model.reconstruct(x_noisy_test)
 
-stats = {
-	'lat_dim': lat_dim,
-	'n_feats': n_feats,
-	'n_channels': n_channels,
-	'n': n,
-	'snr': f'{snr:.1f}',
-	'epochs': epochs,
-	'fcd': fcd,
-	'model_seed': model_seed,
-	'test_press': f'{test_press:.2f}',
-	# Imputation
-	'mse_mcvae': f'{mse_mcvae:.4}',
-	'mse_knn1': f'{mse_knn1:.4}',
-	'mse_knn3': f'{mse_knn3:.4}',
-	'mse_knn5': f'{mse_knn5:.4}',
-	'mse_itimp': f'{mse_itimp:.4}',
-	'mse_dae': f'{mse_da:.4}',
-}
+	# PRESS = Predictive (test set) Sum of Squares
+	test_press = sum(model_press(model, x_noisy_test, x_gt_test))
+
+	tmp_stats = {
+		'lat_dim': lat_dim,
+		'n_feats': n_feats,
+		'n_channels': n_channels,
+		'n': n,
+		'snr': f'{snr:.1f}',
+		'epochs': epochs,
+		'fcd': fcd,
+		'model_seed': model_seed,
+		'test_press': float(f'{test_press:.2f}'),
+	}
+
+	stats.append(tmp_stats)
+	del tmp_stats
+
+df = pd.DataFrame(stats)
+df.plot(x='fcd', y='test_press', logy=True)
 
 print(f"End: {datetime.datetime.now()}\nSee you!")
