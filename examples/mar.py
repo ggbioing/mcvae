@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import torch
 from mcvae.datasets import SyntheticDataset
-from mcvae.models.mcvae import McvaeWithMissings, Mcvae
+from mcvae.models.mcvae import Mcvae, MtMcvae
 from mcvae.diagnostics import plot_loss
 from mcvae.utilities import DEVICE, preprocess_and_add_noise, simulate_mar_multi_channel_data
 from mcvae.models.utils import load_or_fit, model_press
@@ -107,13 +107,13 @@ for i, idi in enumerate(ids):
 ## MODEL FITTING ##
 ###################
 torch.manual_seed(model_seed)
-model = McvaeWithMissings(ids=[list(_) for _ in ids], lat_dim=lat_dim, data=x_m, sparse=False, noise_init_logvar=3)
+model = MtMcvae(ids=[list(_) for _ in ids], lat_dim=lat_dim, data=x_m, sparse=False, noise_init_logvar=3)
 model.optimizer = torch.optim.Adam(params=model.parameters(), lr=1e-3)
 model.to(DEVICE)
 
 ptfile = Path('mt-mcvae.pt')  # multi-task mcvae
 
-load_or_fit(model, model.data, epochs, ptfile)
+load_or_fit(model, model.data, epochs, ptfile, force_fit=False)
 
 #####################
 ## TEST IMPUTATION ##
