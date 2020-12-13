@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from pathlib import Path
 import torch
 from mcvae.datasets import SyntheticDataset
-from mcvae.models.mcvae import Mcvae, MtMcvae
-from mcvae.diagnostics import plot_loss
+from mcvae.models.mcvae import MtMcvae
 from mcvae.utilities import DEVICE, preprocess_and_add_noise, simulate_mar_multi_channel_data
 from mcvae.models.utils import load_or_fit, model_press
-from mcvae.imputation import mse_gt_vs_imputed
 import argparse
 import datetime
 
