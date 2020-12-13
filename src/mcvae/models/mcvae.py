@@ -7,10 +7,13 @@ from torch.utils.data._utils.collate import default_collate  # for imputation
 from .utils import Utilities
 from .vae import VAE
 from ..distributions import Normal
+from ..imputation import process_ids
 
 
 class Mcvae(torch.nn.Module, Utilities):
-
+	"""
+	Multi-Channel VAE
+	"""
 	def __init__(
 			self,
 			data=None,
@@ -109,7 +112,7 @@ class Mcvae(torch.nn.Module, Utilities):
 			'p': p
 		}
 
-	def compute_kl(self, q, beta):
+	def compute_kl(self, q):
 		kl = 0
 		if not self.sparse:
 			for i, qi in enumerate(q):
@@ -120,7 +123,7 @@ class Mcvae(torch.nn.Module, Utilities):
 				if i in self.enc_channels:
 					kl += qi.kl_from_log_uniform().sum(1, keepdims=True).mean(0)
 
-		return beta * kl / self.n_enc_channels  # average KL per encoding
+		return kl
 
 	def compute_ll(self, p, x):
 		# p[x][z]: p(x|z)
@@ -131,14 +134,15 @@ class Mcvae(torch.nn.Module, Utilities):
 				if i in self.dec_channels and j in self.enc_channels:
 					ll += self.vae[i].compute_ll(p=p[i][j], x=x[i]).mean(0)  # average ll per observation
 
-		return ll / self.n_enc_channels / self.n_dec_channels  # average ll per reconstruction
+		return ll
 
 	def loss_function(self, fwd_ret):
 		x = fwd_ret['x']
 		q = fwd_ret['q']
 		p = fwd_ret['p']
 
-		kl = self.compute_kl(q, self.beta)
+		kl = self.compute_kl(q)
+		kl *= self.beta
 		ll = self.compute_ll(p=p, x=x)
 
 		total = kl - ll
@@ -276,6 +280,99 @@ class Mcvae(torch.nn.Module, Utilities):
 		return z
 
 
+class MtMcvae(Mcvae):
+	"""
+	Multi-Task Mcvae
+	"""
+	def __init__(
+			self,
+			ids=None,
+			*args, **kwargs
+	):
+		super().__init__(*args, **kwargs)
+		self.ids = ids
+		self.init_ids()
+
+	def init_ids(self, verbose=True):
+		"""
+		This function is used if a list of ids is provided
+		Originally thought to allow the training of channels with missing subjects/observations
+		"""
+		if self.ids is not None:
+			print('Optimizing with missing data') if verbose else None
+			# {'uniq': sorted_ids, 'KL_index': index_list, 'LL_index': ids_to_selection(ids)}
+			selection = process_ids(self.ids)
+			self.z_index = selection['z_index']
+			self.LL_index = selection['LL_index']
+
+	def decode(self, z):
+		p = []
+		for i in range(self.n_channels):  # output channels
+			pi = []
+			for j in range(self.n_channels):  # input channels
+				if i is j:
+					z_tmp = z[i]
+					pij = self.vae[i].decode(z_tmp)
+				else:
+					if self.LL_index[j][i] is None:
+						z_tmp = None
+						pij = None
+					else:
+						selection = self.LL_index[j][i]['input']
+						z_tmp = z[j][selection, ]
+						pij = self.vae[i].decode(z_tmp)
+				pi.append(pij)
+				del z_tmp, pij
+			p.append(pi)
+			del pi
+		return p  # p[x][z]: p(x|z)
+
+	def decode_in_reconstruction(self, z, *args, **kwargs):
+		try:
+			ids = kwargs['ids']
+			# save training ids in a temp variable
+			train_ids = self.ids
+			self.ids = ids
+			self.init_ids()
+
+			ret = self.decode(z)
+			# put things back together before return
+			self.ids = train_ids
+			self.init_ids()
+			return ret
+		except KeyError:
+			return super().decode(z)
+
+	def compute_ll(self, p, x):
+		# p[x][z]: p(x|z)
+		ll = 0
+		for i in range(self.n_channels):  # output channel
+			lli = 0
+			lli_items = 0
+			for j in range(self.n_channels):  # input channel
+				# xi = reconstructed; zj = encoding
+				if i in self.dec_channels and j in self.enc_channels:  # for mc-regression
+					if i is j:
+						x_tmp = x[i]
+					elif self.LL_index[j][i] is not None:
+						x_tmp = x[i][self.LL_index[j][i]['output'], ]
+
+					if p[i][j] is not None:  # there may be empty intersections
+						lli += self.vae[i].compute_ll(p=p[i][j], x=x_tmp).mean(0)  # average ll per observation (already sum for features)
+						lli_items += 1
+						del x_tmp
+
+			try:
+				lli /= lli_items  # average lli per available reconstruction
+				ll += lli
+				del lli
+			except ZeroDivisionError:
+				pass
+
+		return ll
+
+
 __all__ = [
 	'Mcvae',
+	'MtMcvae',
 ]
