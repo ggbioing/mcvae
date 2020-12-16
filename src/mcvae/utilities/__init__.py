@@ -114,9 +114,9 @@ def simulate_mnar_multi_channel_data(x, n_datasets, lambda_p=1, lambda_g=0):
 	Missing Not At Random data simulation
 	:param x: multi-channel dataset
 	:param n_datasets: number of datasets where x is distributed
-	:param lambda_p: pair-wise intersection. Every disjoint pair of datsets have "lambda_p" channels in common
+	:param lambda_p: pair-wise intersection. Every disjoint pair of datasets have "lambda_p" channels in common
 	:param lambda_g: number of channels in common among every dataset.
-	:return:
+	:return: x_mnar, ids
 	"""
 	assert isinstance(x, list)
 	n_channels = len(x)
