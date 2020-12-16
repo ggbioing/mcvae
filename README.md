@@ -1,10 +1,20 @@
-# MCVAE / sMCVAE
+# MultiChannel VAE
 
-Code related to the paper:
+The MultiChannel VAE (MCVAE) is an extension of the variational autoencoder able to jointly model multiple data source that here we name *channels*.
+
+This repository contains the code related to two papers.
+
+## [Sparse] MCVAE
+
+In this paper we present the MCVAE along with an option to have a __sparse__ latent representation.
+
+Working examples can be found under `examples/mcvae`
+
+If you use this work, please cite:
 
 *Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data*
 
-by  Luigi Antelmi, Nicholas Ayache, Philippe Robert, Marco Lorenzi.
+by Luigi Antelmi, Nicholas Ayache, Philippe Robert, Marco Lorenzi.
 
 Link: http://proceedings.mlr.press/v97/antelmi19a.html
 
@@ -20,6 +30,19 @@ title = {{Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of
 year = {2019}
 }
 ```
+
+## Multi-Task MCVAE
+
+The MCVAE can fit with multi-channel datasets with no missing data.
+
+We extend the capabilities of the MCVAE with a Multi-Task approach
+allowing to model datasets with missing observations.
+
+Working examples can be found under `examples/mcvae`
+
+If you use this work, please cite:
+
+*paper under submission*
 
 # Installation
 
