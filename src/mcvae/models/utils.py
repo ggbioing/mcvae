@@ -169,6 +169,22 @@ def cv_classification_accuracy(y, y_pred, n=1000):
 	return np.mean(acc), np.std(acc)
 
 
+def press(a, b):
+	if isinstance(a, list):
+		ssqe = [press(a[i], b[i]) for i in range(len(a))]
+	else:
+		ssqe = ((a - b)**2).sum().item()
+	return ssqe
+
+
+def model_press(model, x, y):
+	"""
+	predicted error sum of squares
+	"""
+	y_pred = model.reconstruct(x)
+	return press(y_pred, y)
+
+
 # gradient stop
 def stop_grad_in_mcreg(model):
 	for c in range(model.n_channels):
@@ -367,6 +383,8 @@ __all__ = [
 	# TESTING
 	'classification_accuracy',
 	'cv_classification_accuracy',
+	'press',
+	'model_press',
 	# Stop Gradient
 	'stop_grad_in_mcreg',
 	'common_observations',
