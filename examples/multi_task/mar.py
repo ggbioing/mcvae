@@ -5,8 +5,8 @@ from pathlib import Path
 import torch
 from mcvae.datasets import SyntheticDataset
 from mcvae.models.mcvae import MtMcvae
-from mcvae.utilities import DEVICE, preprocess_and_add_noise, simulate_mar_multi_channel_data
-from mcvae.models.utils import load_or_fit, model_press
+from mcvae.utilities import preprocess_and_add_noise, simulate_mar_multi_channel_data
+from mcvae.models.utils import DEVICE, load_or_fit, model_press
 import argparse
 import datetime
 
@@ -15,7 +15,7 @@ print(f"Start: {datetime.datetime.now()}")
 print(f"Running on {DEVICE}")
 
 parser = argparse.ArgumentParser(
-	description='Synthetic experiment with missing data in MCVAE modeling'
+	description='Synthetic experiment with missing data in MultiTask MCVAE modeling'
 )
 parser.add_argument(
 	'--lat_dim',
@@ -115,7 +115,10 @@ for fcd in (0.0, 0.25, 0.5, 0.75, 1.0):
 	model.optimizer = torch.optim.Adam(params=model.parameters(), lr=1e-3)
 	model.to(DEVICE)
 
-	ptfile = Path(f'mt-mcvae_fcd-{fcd}.pt')
+	model_dir = Path('MODELS', 'Synthetic_MAR')
+	model_dir.mkdir(parents=True, exist_ok=True) if not model_dir.exists() else None
+
+	ptfile = Path(model_dir, f'mt-mcvae_fcd-{fcd}.pt')
 
 	load_or_fit(model, model.data, epochs, ptfile, force_fit=False)
 

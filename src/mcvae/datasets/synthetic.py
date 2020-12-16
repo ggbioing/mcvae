@@ -124,7 +124,6 @@ class SyntheticDataset(Dataset):
 		self.n_feats = n_feats
 		self.n_channels = n_channels
 		self.train = train
-		# here we define 2 Gaussian latents variables z = (l_1, l_2)
 		seed = 7 if self.train is True else 14
 		np.random.seed(seed)
 		self.z = np.random.normal(size=(self.n, self.lat_dim))
