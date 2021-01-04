@@ -56,7 +56,8 @@ class VAE(torch.nn.Module, Utilities):
 		self.W_mu = torch.nn.Linear(self.n_feats, self.lat_dim, bias=bias)
 		if self.sparse:
 			if self.log_alpha is None:
-				self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.lat_dim).normal_(0, 0.01))
+				self.log_alpha = torch.nn.Parameter(torch.Tensor(1, self.lat_dim))
+				torch.nn.init.normal_(self.log_alpha, 0.0, 0.01)
 		else:
 			self.W_logvar = torch.nn.Linear(self.n_feats, self.lat_dim, bias=bias)
 
@@ -231,6 +232,15 @@ class VAE(torch.nn.Module, Utilities):
 			return alpha / (alpha + 1)
 		else:
 			raise NotImplementedError
+
+	def extra_repr(self) -> str:
+		extrapars = ['W_out_logvar', 'log_alpha']
+		ret = ''
+		for ep in extrapars:
+			if isinstance(getattr(self, ep), torch.nn.Parameter):
+				ret += f'({ep}): Parameter(shape={getattr(self, ep).shape})\n'
+
+		return ret.rstrip('\n')
 
 
 class TwoLayersVAE(VAE):
