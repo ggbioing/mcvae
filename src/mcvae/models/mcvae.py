@@ -279,6 +279,12 @@ class Mcvae(torch.nn.Module, Utilities):
 			del _
 		return z
 
+	def __len__(self):
+		return self.n_channels
+
+	def __getitem__(self, item):
+		return self.vae[item]
+
 
 class MtMcvae(Mcvae):
 	"""
