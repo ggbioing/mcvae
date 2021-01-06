@@ -117,6 +117,15 @@ def save_model(model, modelpath, verbose=False, warn=False):
 
 def load_or_fit(model, data, epochs, ptfile, init_loss=True, minibatch=False, force_fit=False):
 
+	"""
+	Routine to train or load a model.
+	:param model: model to optimize
+	:param data: training data
+	:param epochs: number of training epochs
+	:param ptfile: path to *.pt file where to save the trained model
+	:param force_fit: force the training even if the model is already trained
+	"""
+
 	ptfile = Path(ptfile)
 
 	rf = Path(f'{ptfile}.running')
