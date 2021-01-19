@@ -40,9 +40,20 @@ allowing to model datasets with missing observations.
 
 Working examples can be found under `examples/mcvae`
 
-If you use this work, please cite:
-
-*paper under submission*
+BibTeX citation:
+```bibtex
+@unpublished{antelmi:hal-03114888,
+  title = {{Combining Multi-Task Learning and Multi-Channel Variational Auto-Encoders to Exploit Datasets with Missing Observations -Application to Multi-Modal Neuroimaging Studies in Dementia}},
+  author = {Antelmi, Luigi and Ayache, Nicholas and Robert, Philippe and Ribaldi, Federica and Garibotto, Valentina and Frisoni, Giovanni B and Lorenzi, Marco},
+  url = {https://hal.inria.fr/hal-03114888},
+  note = {working paper or preprint},
+  year = {2021},
+  month = Jan,
+  pdf = {https://hal.inria.fr/hal-03114888/file/elsarticle-template-harv.pdf},
+  hal_id = {hal-03114888},
+  hal_version = {v1},
+}
+```
 
 # Installation
 
