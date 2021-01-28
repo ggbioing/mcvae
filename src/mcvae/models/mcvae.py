@@ -6,7 +6,7 @@ import torch
 from torch.utils.data._utils.collate import default_collate  # for imputation
 from .utils import Utilities
 from .vae import VAE
-from ..distributions import Normal
+from ..distributions import Normal, compute_ll, compute_kl
 from ..imputation import process_ids
 
 
@@ -114,14 +114,10 @@ class Mcvae(torch.nn.Module, Utilities):
 
 	def compute_kl(self, q):
 		kl = 0
-		if not self.sparse:
-			for i, qi in enumerate(q):
-				if i in self.enc_channels:
-					kl += qi.kl_divergence(Normal(0, 1)).sum(1, keepdims=True).mean(0)
-		else:
-			for i, qi in enumerate(q):
-				if i in self.enc_channels:
-					kl += qi.kl_from_log_uniform().sum(1, keepdims=True).mean(0)
+		for i, qi in enumerate(q):
+			if i in self.enc_channels:
+				# "compute_kl" ignores p2 if sparse=True.
+				kl += compute_kl(p1=qi, p2=Normal(0, 1), sparse=self.sparse)
 
 		return kl
 
@@ -132,7 +128,7 @@ class Mcvae(torch.nn.Module, Utilities):
 			for j in range(self.n_channels):
 				# xi = reconstructed; zj = encoding
 				if i in self.dec_channels and j in self.enc_channels:
-					ll += self.vae[i].compute_ll(p=p[i][j], x=x[i]).mean(0)  # average ll per observation
+					ll += compute_ll(p=p[i][j], x=x[i])
 
 		return ll
 
@@ -364,7 +360,7 @@ class MtMcvae(Mcvae):
 						x_tmp = x[i][self.LL_index[j][i]['output'], ]
 
 					if p[i][j] is not None:  # there may be empty intersections
-						lli += self.vae[i].compute_ll(p=p[i][j], x=x_tmp).mean(0)  # average ll per observation (already sum for features)
+						lli += compute_ll(p=p[i][j], x=x_tmp)
 						lli_items += 1
 						del x_tmp
 

@@ -67,6 +67,23 @@ def multivariate_prior(n, device='cpu', *args, **kwargs):
 	return MultivariateNormal(loc=torch.zeros(n).to(device), covariance_matrix=cm)
 
 
+def p_to_prediction(p):
+
+	if isinstance(p, list):
+		return [p_to_prediction(_) for _ in p]
+
+	if isinstance(p, Normal):
+		pred = p.loc
+	elif isinstance(p, Categorical):
+		pred = p.logits.argmax(dim=1)
+	elif isinstance(p, Bernoulli):
+		pred = p.probs
+	else:
+		raise NotImplementedError
+
+	return pred
+
+
 __all__ = [
 	'multiply_gaussians',
 	'divide_gaussians',
@@ -74,4 +91,5 @@ __all__ = [
 	'plot_covariance_ellipsoid',
 	'trilinear_covariance',
 	'multivariate_prior',
+	'p_to_prediction',
 ]

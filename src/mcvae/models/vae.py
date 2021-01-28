@@ -1,8 +1,7 @@
 import torch
 from torch.distributions import Bernoulli, Categorical, MultivariateNormal, kl_divergence
 from .utils import Utilities, DEVICE
-from ..distributions import Normal
-from ..distributions.kl_utilities import compute_logvar
+from ..distributions import Normal, compute_kl, compute_ll, compute_logvar
 
 
 class VAE(torch.nn.Module, Utilities):
@@ -112,35 +111,17 @@ class VAE(torch.nn.Module, Utilities):
 
 		return fwd_ret
 
-	def compute_kl(self, posterior, beta):
-		if self.sparse:
-			kl = posterior.kl_from_log_uniform().sum(1, keepdims=True).mean(0)
-		elif isinstance(posterior, Normal):
-				prior = Normal(0, 1)
-				kl = posterior.kl_divergence(prior).sum(1, keepdims=True).mean(0)
-		elif isinstance(posterior, MultivariateNormal):
-			prior = MultivariateNormal(
-				loc=torch.zeros(self.lat_dim).to(DEVICE),
-				covariance_matrix=torch.eye(self.lat_dim).to(DEVICE),
-			)
-			kl = kl_divergence(posterior, prior).mean(0)
+	def compute_kl(self, posterior):
 
-		return beta * kl
-
-	@staticmethod
-	def compute_ll(p, x):
-		"""
-		:return: log-likelihood compatible with the decoder distribution
-		"""
-		return p.log_prob(x.to(DEVICE)).sum(1, keepdims=True)
+		return compute_kl(p1=posterior, p2=Normal(0, 1), sparse=self.sparse)
 
 	def loss_function(self, fwd_ret):
 		y = fwd_ret['y']
 		posterior = fwd_ret['posterior']
 		p = fwd_ret['p']
 
-		kl = self.compute_kl(posterior, beta=self.beta)
-		ll = self.compute_ll(p, y).mean(0)
+		kl = self.beta * self.compute_kl(posterior)
+		ll = compute_ll(p, y)
 
 		total = kl - ll
 

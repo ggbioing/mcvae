@@ -1,4 +1,5 @@
 import torch
+from torch.distributions import kl_divergence
 
 
 def compute_log_alpha(mu, logvar):
@@ -31,9 +32,25 @@ def KL_log_uniform(mu, logvar):
 	return -neg_KL
 
 
+def compute_kl(p1, p2=None, sparse=False):
+	"""
+	:param p1: Normal distribution with p1.loc.shape = (n_obs, n_lat_dims)
+	:param p2: same as p1
+	:param sparse:
+	:return: scalar value
+	"""
+	if sparse:
+		kl = KL_log_uniform(mu=p1.loc, logvar=p1.scale.pow(2).log())
+	else:
+		kl = kl_divergence(p1, p2)
+
+	return kl.sum(1, keepdims=True).mean(0)
+
+
 __all__ = [
 	'compute_log_alpha',
 	'compute_logvar',
 	'compute_clip_mask',
 	'KL_log_uniform',
+	'compute_kl',
 ]
