@@ -8,7 +8,7 @@ This repository contains the code related to two papers.
 
 In this paper we present the MCVAE along with an option to have a __sparse__ latent representation.
 
-Working examples can be found under `examples/mcvae`
+Working examples can be found under [`examples/mcvae`](https://github.com/ggbioing/mcvae/tree/master/examples/mcvae)
 
 If you use this work, please cite:
 
@@ -38,7 +38,7 @@ The MCVAE can fit with multi-channel datasets with no missing data.
 We extend the capabilities of the MCVAE with a Multi-Task approach
 allowing to model datasets with missing observations.
 
-Working examples can be found under `examples/mcvae`
+Working examples can be found under [`examples/mt-mcvae`](https://github.com/ggbioing/mcvae/tree/master/examples/mt-mcvae)
 
 BibTeX citation:
 ```bibtex
