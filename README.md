@@ -59,6 +59,14 @@ BibTeX citation:
 
 # Installation
 
+## Quick and dirty
+Clone this repo and add the following preamble to your python script by changing appropriately the path to the `mcvae/src` folder: 
+```python
+import sys
+sys.path.append('/home/user/git/mcvae/src')
+```
+ Errors may arise while using the `mcvae` package if your python environment does not contain the dependencies listed in the [`environment.yml`](./environment.yml) file. 
+
 ## GNU/Linux
 Install conda:
 ```bash
