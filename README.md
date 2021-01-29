@@ -57,7 +57,7 @@ BibTeX citation:
 }
 ```
 
-<img src="./fig/mt-mcvae.svg">
+<img src="./fig/mt-mcvae.png">
 
 # Installation
 
