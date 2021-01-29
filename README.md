@@ -35,10 +35,10 @@ year = {2019}
 
 ## Multi-Task MCVAE
 
-The MCVAE can fit with multi-channel datasets with no missing data.
-
 We extend the capabilities of the MCVAE with a Multi-Task approach
 allowing to model datasets with missing observations.
+
+<img src="./fig/mt-mcvae.png">
 
 Working examples can be found under [`examples/mt-mcvae`](https://github.com/ggbioing/mcvae/tree/master/examples/mt-mcvae)
 
@@ -56,8 +56,6 @@ BibTeX citation:
   hal_version = {v1},
 }
 ```
-
-<img src="./fig/mt-mcvae.png">
 
 # Installation
 
