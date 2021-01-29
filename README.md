@@ -2,7 +2,7 @@
 
 The MultiChannel VAE (MCVAE) is an extension of the variational autoencoder able to jointly model multiple data source that here we name *channels*.
 
-<img src=".fig/mcvae.svg">
+<img src="./fig/mcvae.svg">
 
 This repository contains the code related to two papers.
 
