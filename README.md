@@ -57,6 +57,8 @@ BibTeX citation:
 }
 ```
 
+<img src="./fig/mt-mcvae.svg">
+
 # Installation
 
 ## GNU/Linux
