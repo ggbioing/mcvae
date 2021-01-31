@@ -12,6 +12,8 @@ In this paper we present the MCVAE along with an option to have a __sparse__ lat
 
 Working examples can be found under [`examples/mcvae`](https://github.com/ggbioing/mcvae/tree/master/examples/mcvae)
 
+<img src="./fig/sampling.png">
+
 If you use this work, please cite:
 
 *Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data*
