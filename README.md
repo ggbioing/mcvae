@@ -20,7 +20,9 @@ If you use this work, please cite:
 
 by Luigi Antelmi, Nicholas Ayache, Philippe Robert, Marco Lorenzi.
 
-Link: http://proceedings.mlr.press/v97/antelmi19a.html
+[[paper]](http://proceedings.mlr.press/v97/antelmi19a.html)
+[[slides]](https://icml.cc/media/Slides/icml/2019/hallb(12-16-00)-12-17-00-5118-sparse_multi-ch.pdf)
+[[video]](https://videoken.com/embed/n5e2qNQ-h6E?tocitem=67)
 
 BibTeX citation:
 ```bibtex
