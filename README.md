@@ -46,6 +46,8 @@ allowing to model datasets with missing observations.
 
 Working examples can be found under [`examples/mt-mcvae`](https://github.com/ggbioing/mcvae/tree/master/examples/mt-mcvae)
 
+[[paper]](https://hal.inria.fr/hal-03114888/file/elsarticle-template-harv.pdf)
+
 BibTeX citation:
 ```bibtex
 @unpublished{antelmi:hal-03114888,
