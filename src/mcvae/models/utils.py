@@ -240,6 +240,17 @@ def init_names(classname, namedict=None):
 	return model_name
 
 
+def load_data_from_spreadsheet(filepath):
+	"""
+	Utility to load multi-channel observations from a spreadsheet.
+	The spreadsheet should contain one sheet per channel.
+	The observation identifier is assumed to be in the first column of every sheet.
+	:param filepath: path to spreadsheet file.
+	:return: X, ids
+	"""
+	pass
+
+
 class Utilities:
 
 	def get_parameters(self):
