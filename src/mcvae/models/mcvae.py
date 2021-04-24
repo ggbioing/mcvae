@@ -12,7 +12,20 @@ from ..imputation import process_ids
 
 class Mcvae(torch.nn.Module, Utilities):
 	"""
-	Multi-Channel VAE
+	Multi-Channel Variational AutoEncoder
+
+	This is the main class used in the publication:
+
+	@inproceedings{Antelmi2019,
+		author = {Antelmi, Luigi and Ayache, Nicholas and Robert, Philippe and Lorenzi, Marco},
+		booktitle = {Proceedings of the 36th International Conference on Machine Learning},
+		editor = {Chaudhuri, Kamalika and Salakhutdinov, Ruslan},
+		pages = {302--311},
+		publisher = {PMLR},
+		title = {{Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data}},
+		year = {2019}
+	}
+
 	"""
 	def __init__(
 			self,
@@ -31,6 +44,19 @@ class Mcvae(torch.nn.Module, Utilities):
 			n_labels=None,  # for classifier, eventually
 			*args, **kwargs,
 	):
+		"""
+
+		:param data: example of a multi-channel dataset used to infer the model architecture (n_channels, n_feats)
+		:param lat_dim: number of latent dimension
+		:param n_channels: number of channels. Can be inferred from 'data'.
+		:param n_feats: number of features for each channel. Can be inferred from 'data'.
+		:param beta: scaling factor for Kullback-Leibler distance.
+		:param enc_channels: specify the channels to encode from.
+		:param dec_channels: specify the channels to decode.
+		:param sparse: True for a sparse model (default False).
+		:param vaeclass: basic class for building the Mcvae model.
+		:param vaeclass_kwargs: dictionary of arguments for 'vaeclass'
+		"""
 		super().__init__()
 
 		assert n_channels == len(n_feats)
@@ -285,12 +311,33 @@ class Mcvae(torch.nn.Module, Utilities):
 class MtMcvae(Mcvae):
 	"""
 	Multi-Task Mcvae
+
+	Extension of Mcvae to allow training of multi-channel data with missing observations.
+
+	This is the main class used in the publication:
+
+	@unpublished{Antelmi2021,
+		title = {{Combining Multi-Task Learning and Multi-Channel Variational Auto-Encoders to Exploit Datasets with Missing Observations -Application to Multi-Modal Neuroimaging Studies in Dementia}},
+		author = {Antelmi, Luigi and Ayache, Nicholas and Robert, Philippe and Ribaldi, Federica and Garibotto, Valentina and Frisoni, Giovanni B and Lorenzi, Marco},
+		url = {https://hal.inria.fr/hal-03114888},
+		note = {working paper or preprint},
+		year = {2021},
+		month = Jan,
+		hal_id = {hal-03114888},
+		hal_version = {v1},
+	}
 	"""
 	def __init__(
 			self,
 			ids=None,
 			*args, **kwargs
 	):
+		"""
+
+		:param ids:
+		:param args:
+		:param kwargs:
+		"""
 		super().__init__(*args, **kwargs)
 		self.ids = ids
 		self.init_ids()

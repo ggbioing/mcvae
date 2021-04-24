@@ -119,11 +119,12 @@ def load_or_fit(model, data, epochs, ptfile, init_loss=True, minibatch=False, fo
 
 	"""
 	Routine to train or load a model.
-	:param model: model to optimize
-	:param data: training data
-	:param epochs: number of training epochs
-	:param ptfile: path to *.pt file where to save the trained model
-	:param force_fit: force the training even if the model is already trained
+	:param model: model to optimize.
+	:param data: training data. It can be also a PyTorch DataLoader for a dataset that do not fit in memory.
+	:param epochs: number of training epochs.
+	:param ptfile: path to *.pt file where to save the trained model.
+	:param minibatch: True if training with mini-batches.
+	:param force_fit: force the training even if the model is already trained.
 	"""
 
 	ptfile = Path(ptfile)

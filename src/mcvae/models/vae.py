@@ -338,8 +338,59 @@ class ThreeLayersVAE(VAE):
 		del tmp_noise_par
 
 
+class ConditionalDistributionNet(torch.nn.Module):
+
+	def __init__(self, in_features, out_features):
+
+		super().__init__()
+
+		self.mu = torch.nn.Linear(in_features, out_features)
+		self.logvar = torch.nn.Linear(in_features, out_features)
+
+	def forward(self, x):
+
+		loc = self.mu(x)
+		scale = self.logvar(x).exp().pow(0.5)
+
+		return Normal(loc=loc, scale=scale)
+
+
+class MyVAE(torch.nn.Module):
+
+	def __init__(self, n_feats, lat_dim, *args, **kwargs):
+
+		super().__init__()
+
+		self.encode = ConditionalDistributionNet(
+			in_features=n_feats,
+			out_features=lat_dim,
+		)
+		self.decode = ConditionalDistributionNet(
+			in_features=lat_dim,
+			out_features=n_feats,
+		)
+
+	def forward(self, x):
+
+		q = self.encode(x)
+		z = q.rsample()
+		p = self.decode(z)
+
+		return x, q, p
+
+	def loss_function(self, x, q, p):
+
+		kl = kl_divergence(q, Normal(0, 1)).sum(1).mean(0)
+		ll = p.log_prob(x).sum(1).mean(0)
+		total = kl - ll
+
+		return total
+
+
 __all__ = [
 	'VAE',
 	'TwoLayersVAE',
 	'ThreeLayersVAE',
+	'ConditionalDistributionNet',
+	'MyVAE',
 ]
